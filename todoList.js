@@ -36,7 +36,6 @@ class TodoAppComponent extends Component{
         let list = this.todoService.getTodos();
         this.element.append(this.todoList.element);  ///this.todoService.getTodos()
         document.body.appendChild(this.element);
-        // this.handleEvent();
     }
 
     createTodo(title) {
@@ -47,9 +46,6 @@ class TodoAppComponent extends Component{
         }else{
             console.log('just coll');
         }
-        // this.render();
-
-        // this.todoList.show();
     }
     deleteTodo(id) {
         if(id){
@@ -127,7 +123,7 @@ class TodoFormComponent extends Component {
 
         let input = document.createElement('input');
         input.type = 'text';
-        input.placeholder = 'What do we have to do?'
+        input.placeholder = 'What do we have to do?';
         form.append(input);
         
         let submitButton = document.createElement('button');
@@ -151,11 +147,10 @@ class TodoListComponent extends Component{
         this.pubsub.subscribe('create', this, this.render);
         this.pubsub.subscribe('onDelete', this, this.render);
         this.pubsub.subscribe('onToggle', this, this.render);
-
     }
     render(data){
         if(data){
-            document.getElementById('item-conteiner').innerHTML = ''
+            document.getElementById('item-conteiner').innerHTML = '';
             this.todoList = data;
             this.todoList.forEach(todoItem => {  
                 let item = new TodoItemComponent(this.pubsub, todoItem.id);
@@ -163,20 +158,9 @@ class TodoListComponent extends Component{
                 
                 this.element.append(item.element);
             })
-
         }else{
             console.log('just a call');
         }
-
-
-        // console.log('1.5',document.body);
-        // if(data){
-        //     data.forEach(todoItem => {      
-        //         this.element.append(todoItem.element)
-        //     })
-        // }
-        // console.log(this.element);
-        // return this.element
     }
 }
 
@@ -190,15 +174,12 @@ class TodoItemComponent extends Component{
     }
 
     handleEvent() {
-        this.delButton.addEventListener('click', (e)=>{
-            // let id = e.target.id;
+        this.delButton.addEventListener('click', ()=>{
             
             this.pubsub.fireEvent('delete', this.id);
         })
 
-        this.checkBoxButton.addEventListener('click', (e)=>{
-            
-            // let id = e.target.id;
+        this.checkBoxButton.addEventListener('click', ()=>{
             
             this.pubsub.fireEvent('toggle', this.id);
         })
@@ -262,7 +243,7 @@ class TodoItem{
         this.id = uuid();
         this.title = title;
         this.completed = false;
-        console.log(`hello, im your todo, MY task is "${title}"`);
+        console.log(`hello, MY task is "${title}"`);
     }
 }
 
