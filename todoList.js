@@ -29,12 +29,12 @@ class TodoAppComponent extends Component{
 
         this.pubsub.subscribe('onCreate', this, this.createTodo); //from form
         this.pubsub.subscribe('delete', this, this.deleteTodo); //from todoItem
-        // this.pubsub.subscribe('toggle', this, this.toggleTodo); //from todoItem
+        this.pubsub.subscribe('toggle', this, this.toggleTodo); //from todoItem
     }
     render(){
         this.element.append(this.form.element);
-        let list = this.todoService.getTodos()
-        this.element.append(this.todoList.element)  ///this.todoService.getTodos()
+        let list = this.todoService.getTodos();
+        this.element.append(this.todoList.element);  ///this.todoService.getTodos()
         document.body.appendChild(this.element);
         // this.handleEvent();
     }
@@ -42,6 +42,7 @@ class TodoAppComponent extends Component{
     createTodo(title) {
         if(title){
             this.todoService.createTodo(title);
+
             this.pubsub.fireEvent('create', this.todoService.getTodos());
         }else{
             console.log('just coll');
@@ -59,7 +60,15 @@ class TodoAppComponent extends Component{
             console.log('just coll');
         }
     }
-    toggleTodo() {}
+    toggleTodo(id) {
+        if(id){
+            this.todoService.toggleTodo(id);
+            this.pubsub.fireEvent('onToggle', this.todoService.getTodos());
+            this.render();
+        }else{
+            console.log('just coll');
+        }
+    }
 
 }
 
@@ -70,18 +79,15 @@ class TodoService {
     }
 
     createTodo(title){
-        let todo = new TodoItemComponent(title, this.pubsub);
+        let todo = new TodoItem(title, this.pubsub);
         this.todos.push(todo);
         console.log('created', this.todos.length);
     }
 
     deleteTodo(id){
-        console.log('delete todo from serice');
-        console.log('1.2');
         let todoToDel = this.todos.findIndex(todo => todo.id === id);
         this.todos.splice(todoToDel, 1);
         console.log(this.todos.length);
-        console.log('1.3');
     }
     
     toggleTodo(id){
@@ -138,56 +144,67 @@ class TodoListComponent extends Component{
     constructor(pubsub) {
         super();
         this.element = document.createElement('div');
+        this.element.id = 'item-conteiner';
         this.pubsub = pubsub;
         this.todoList = null;
-        // this.render();
+
         this.pubsub.subscribe('create', this, this.render);
         this.pubsub.subscribe('onDelete', this, this.render);
+        this.pubsub.subscribe('onToggle', this, this.render);
 
     }
     render(data){
-        // this.todoList = data;
-        // if(this.todoList){
-        //     this.todoList.forEach(todoItem => {      
+        if(data){
+            document.getElementById('item-conteiner').innerHTML = ''
+            this.todoList = data;
+            this.todoList.forEach(todoItem => {  
+                let item = new TodoItemComponent(this.pubsub, todoItem.id);
+                item.render(todoItem.title, todoItem.completed);
+                
+                this.element.append(item.element);
+            })
+
+        }else{
+            console.log('just a call');
+        }
+
+
+        // console.log('1.5',document.body);
+        // if(data){
+        //     data.forEach(todoItem => {      
         //         this.element.append(todoItem.element)
-        //         console.log(this.todoList.length);
         //     })
         // }
         // console.log(this.element);
         // return this.element
-        console.log('1.5',document.body);
-        if(data){
-            data.forEach(todoItem => {      
-                this.element.append(todoItem.element)
-            })
-        }
-        console.log(this.element);
-        // return this.element
     }
 }
 
-class TodoItemComponent extends Component{/////////////////stop here
-    constructor(title, pubsub) {
+class TodoItemComponent extends Component{
+    constructor(pubsub, id) {
         super();
-        this.id = uuid();
-        this.title = title;
-        this.completed = false;
-        this.pubsub = pubsub
+        this.pubsub = pubsub;
+        this.id = id;
         this.checkBoxButton = null;
         this.delButton = null;
-        this.render(this.title, this.id);
-        this.handleEvent();
-        console.log(`hello, im your todo, MY task is "${title}"`);
-        
     }
+
     handleEvent() {
         this.delButton.addEventListener('click', (e)=>{
-            let id = e.target.id;
+            // let id = e.target.id;
             
-            this.pubsub.fireEvent('delete', id);
+            this.pubsub.fireEvent('delete', this.id);
+        })
+
+        this.checkBoxButton.addEventListener('click', (e)=>{
+            
+            // let id = e.target.id;
+            
+            this.pubsub.fireEvent('toggle', this.id);
         })
     }
-    render(title, id) {
+/////////////////////////////////
+    render(title, completed){
         let arrOfHtmlElements = [];
 
         let section = document.createElement('section');
@@ -196,7 +213,7 @@ class TodoItemComponent extends Component{/////////////////stop here
         let todoItemDiv = document.createElement('div');
         todoItemDiv.className = 'todo-item';
         // todoItemDiv.contentEditable = true;
-        todoItemDiv.className += this.completed ? ' completed' : '';
+        todoItemDiv.className += completed ? ' completed' : '';
 
 
         let checkboxButton = document.createElement('button');
@@ -204,7 +221,7 @@ class TodoItemComponent extends Component{/////////////////stop here
 
         let i = document.createElement('i');
         i.className = 'material-icons';
-        i.innerText = this.completed ? 'check_box' : 'check_box_outline_blank';
+        i.innerText = completed ? 'check_box' : 'check_box_outline_blank';
         checkboxButton.prepend(i);
         this.checkBoxButton = checkboxButton;
     
@@ -220,7 +237,7 @@ class TodoItemComponent extends Component{/////////////////stop here
 
         let iDel = document.createElement('i');
         iDel.className = 'material-icons';
-        iDel.id = id;
+        iDel.id = this.id;
         iDel.innerText = 'delete';
         deleteButton.append(iDel);
 
@@ -235,16 +252,18 @@ class TodoItemComponent extends Component{/////////////////stop here
             todoItemDiv.append(arrOfHtmlElements[n]);
             section.append(todoItemDiv);
         }
-        this.element = section;      
+        this.element = section; 
+        this.handleEvent();
     }
-    toggle() {
-        // this.completed = !this.completed;
-        // console.log('todo class');
-    }
-    delete() {
+}
 
+class TodoItem{
+    constructor(title) {
+        this.id = uuid();
+        this.title = title;
+        this.completed = false;
+        console.log(`hello, im your todo, MY task is "${title}"`);
     }
-
 }
 
 //-------------------------------------------------------------------------------------------
