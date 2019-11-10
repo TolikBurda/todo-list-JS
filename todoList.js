@@ -170,8 +170,11 @@ class TodoListComponent extends Component{
             this.todoList.forEach(todoItem => {  
                 let item = new TodoItemComponent(this.pubsub, todoItem.id);
                 item.render(todoItem.title, todoItem.completed);
-                
-                this.element.append(item.element);
+                if(todoItem.completed == true){
+                    this.element.append(item.element);
+                }else{
+                    this.element.prepend(item.element);
+                }
             })
         }else{
             console.log('just a call');
