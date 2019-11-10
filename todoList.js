@@ -30,6 +30,7 @@ class TodoAppComponent extends Component{
         this.pubsub.subscribe('onCreate', this, this.createTodo); //from form
         this.pubsub.subscribe('delete', this, this.deleteTodo); //from todoItem
         this.pubsub.subscribe('toggle', this, this.toggleTodo); //from todoItem
+        this.pubsub.subscribe('edit', this, this.editTodo); //from todoItem
     }
     render(){
         this.element.append(this.form.element);
@@ -65,6 +66,15 @@ class TodoAppComponent extends Component{
             console.log('just coll');
         }
     }
+    editTodo(data){
+        if(data){
+            this.todoService.editTodo(data.title, data.id);
+            this.pubsub.fireEvent('onEdit', this.todoService.getTodos());
+            this.render();
+        }else{
+            console.log('just coll');
+        }
+    }
 
 }
 
@@ -88,8 +98,12 @@ class TodoService {
     
     toggleTodo(id){
         let todoToToggle = this.todos.find(todo => todo.id === id);
-        console.log(id, 'todoList Class');
+        console.log(todoToToggle, 'todoList Class');
         todoToToggle.completed = !todoToToggle.completed;
+    }
+    editTodo(title, id){
+        let todoToEdit = this.todos.find(todo => todo.id === id);
+        todoToEdit.title = title;
     }
 
     getTodos() {
@@ -147,6 +161,7 @@ class TodoListComponent extends Component{
         this.pubsub.subscribe('create', this, this.render);
         this.pubsub.subscribe('onDelete', this, this.render);
         this.pubsub.subscribe('onToggle', this, this.render);
+        this.pubsub.subscribe('onEdit', this, this.render);
     }
     render(data){
         if(data){
@@ -171,17 +186,36 @@ class TodoItemComponent extends Component{
         this.id = id;
         this.checkBoxButton = null;
         this.delButton = null;
+        this.editButton = null;
+        this.todoItemDiv = null;
+        this.editDiv = null;
+        this.saveButton = null;
     }
 
-    handleEvent() {
+    handleEvent(title) {
         this.delButton.addEventListener('click', ()=>{
-            
+            // let isBoss = 
+            confirm(`Вы действительно хотите удалить задачу "${title}"?`);
+
+            // alert( isBoss );
             this.pubsub.fireEvent('delete', this.id);
         })
 
         this.checkBoxButton.addEventListener('click', ()=>{
             
             this.pubsub.fireEvent('toggle', this.id);
+        })
+
+        this.editButton.addEventListener('click', ()=>{
+            console.log('click on edit button');
+            this.todoItemDiv.style.display = 'none';
+            this.editDiv.style.display = '';
+            // this.editDiv.style.display = '';
+        })
+
+        this.saveButton.addEventListener('click', ()=>{
+            let data = {title: this.textField.value, id: this.id};
+            this.pubsub.fireEvent('edit', data);
         })
     }
 /////////////////////////////////
@@ -191,11 +225,11 @@ class TodoItemComponent extends Component{
         let section = document.createElement('section');
         section.className = 'todo-list';
 
+        ////////////////////todoItemDiv////////////
         let todoItemDiv = document.createElement('div');
         todoItemDiv.className = 'todo-item';
-        // todoItemDiv.contentEditable = true;
         todoItemDiv.className += completed ? ' completed' : '';
-
+        this.todoItemDiv = todoItemDiv;
 
         let checkboxButton = document.createElement('button');
         checkboxButton.classList.add('checkbox', 'icon' );
@@ -213,6 +247,19 @@ class TodoItemComponent extends Component{
         let actionsDiv = document.createElement('div');
         actionsDiv.className = 'actions';
 
+        let editButton = document.createElement('button');
+        editButton.classList.add('edit', 'icon');
+
+        let edit = document.createElement('i');
+        edit.className = 'material-icons';
+        edit.id = this.id;
+        edit.innerText = 'create';
+        editButton.append(edit);
+
+        actionsDiv.append(editButton);
+        this.editButton = editButton;
+
+
         let deleteButton = document.createElement('button');
         deleteButton.classList.add('delete', 'icon');
 
@@ -224,6 +271,7 @@ class TodoItemComponent extends Component{
 
         actionsDiv.append(deleteButton);
         this.delButton = deleteButton;
+
         
         arrOfHtmlElements.push(checkboxButton);
         arrOfHtmlElements.push(span);
@@ -231,10 +279,53 @@ class TodoItemComponent extends Component{
 
         for(let n = 0; n < arrOfHtmlElements.length; n++){
             todoItemDiv.append(arrOfHtmlElements[n]);
-            section.append(todoItemDiv);
         }
+        ////////////////////////////editDiv
+        let arrOfEditElements = [];
+
+        let todoEditDiv = document.createElement('div');
+        todoEditDiv.className = 'todo-item';
+        todoEditDiv.style.display = 'none';
+        // todoEditDiv.className += completed ? ' completed' : '';
+        this.editDiv = todoEditDiv;
+
+    
+        let textField = document.createElement('input');
+        textField.type = 'text';
+        // input.className = 'title';
+        textField.value = title;
+        this.textField = textField;
+
+        let actionsEditDiv = document.createElement('div');
+        actionsEditDiv.className = 'actions';
+
+        let saveButton = document.createElement('button');
+        saveButton.classList.add('save', 'icon');
+
+        let save = document.createElement('i');
+        save.className = 'material-icons';
+        save.id = this.id;
+        save.innerText = 'save';
+        saveButton.append(save);
+
+        actionsEditDiv.append(saveButton);
+        this.saveButton = saveButton;
+
+
+        
+        arrOfEditElements.push(textField);
+        arrOfEditElements.push(actionsEditDiv);
+
+        for(let n = 0; n < arrOfEditElements.length; n++){
+            todoEditDiv.append(arrOfEditElements[n]);
+        }
+//////////////////////////////////////
+        section.append(todoEditDiv);
+        section.append(todoItemDiv);
+
+
         this.element = section; 
-        this.handleEvent();
+        this.handleEvent(title);
     }
 }
 
