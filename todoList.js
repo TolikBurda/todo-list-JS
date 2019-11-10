@@ -34,45 +34,27 @@ class TodoAppComponent extends Component{
     }
     render(){
         this.element.append(this.form.element);
-        let list = this.todoService.getTodos();
-        this.element.append(this.todoList.element);  ///this.todoService.getTodos()
-        document.body.appendChild(this.element);
+        this.element.append(this.todoList.element);
     }
 
     createTodo(title) {
         if(title){
             this.todoService.createTodo(title);
-
-            this.pubsub.fireEvent('create', this.todoService.getTodos());
-        }else{
-            console.log('just coll');
         }
     }
     deleteTodo(id) {
         if(id){
             this.todoService.deleteTodo(id);
-            this.pubsub.fireEvent('onDelete', this.todoService.getTodos());
-            this.render();
-        }else{
-            console.log('just coll');
         }
     }
     toggleTodo(id) {
         if(id){
             this.todoService.toggleTodo(id);
-            this.pubsub.fireEvent('onToggle', this.todoService.getTodos());
-            this.render();
-        }else{
-            console.log('just coll');
         }
     }
     editTodo(data){
         if(data){
             this.todoService.editTodo(data.title, data.id);
-            this.pubsub.fireEvent('onEdit', this.todoService.getTodos());
-            this.render();
-        }else{
-            console.log('just coll');
         }
     }
 
@@ -87,29 +69,25 @@ class TodoService {
     createTodo(title){
         let todo = new TodoItem(title, this.pubsub);
         this.todos.push(todo);
-        console.log('created', this.todos.length);
+        this.pubsub.fireEvent('create', this.todos);
     }
 
     deleteTodo(id){
         let todoToDel = this.todos.findIndex(todo => todo.id === id);
         this.todos.splice(todoToDel, 1);
-        console.log(this.todos.length);
+        this.pubsub.fireEvent('onDelete', this.todos);
     }
     
     toggleTodo(id){
         let todoToToggle = this.todos.find(todo => todo.id === id);
-        console.log(todoToToggle, 'todoList Class');
         todoToToggle.completed = !todoToToggle.completed;
+        this.pubsub.fireEvent('onToggle', this.todos);
     }
     editTodo(title, id){
         let todoToEdit = this.todos.find(todo => todo.id === id);
         todoToEdit.title = title;
+        this.pubsub.fireEvent('onEdit', this.todos);
     }
-
-    getTodos() {
-        return this.todos;
-    }
-
 }
 
 class TodoFormComponent extends Component {
@@ -132,21 +110,20 @@ class TodoFormComponent extends Component {
     }
 
     render() {
-        let form = document.createElement('form');
-        form.className = 'todo-form';
+        this.form = document.createElement('form');
+        this.form.className = 'todo-form';
 
         let input = document.createElement('input');
         input.type = 'text';
         input.placeholder = 'What do we have to do?';
-        form.append(input);
+        this.form.append(input);
         
         let submitButton = document.createElement('button');
         submitButton.type = 'submit';
         submitButton.innerText = 'Add';
-        form.append(submitButton);
+        this.form.append(submitButton);
         
-        this.form = form;
-        this.element = form;
+        this.element = this.form;
     }
 }
 
@@ -154,7 +131,6 @@ class TodoListComponent extends Component{
     constructor(pubsub) {
         super();
         this.element = document.createElement('div');
-        this.element.id = 'item-conteiner';
         this.pubsub = pubsub;
         this.todoList = null;
 
@@ -165,7 +141,7 @@ class TodoListComponent extends Component{
     }
     render(data){
         if(data){
-            document.getElementById('item-conteiner').innerHTML = '';
+            this.element.innerHTML = '';
             this.todoList = data;
             this.todoList.forEach(todoItem => {  
                 let item = new TodoItemComponent(this.pubsub, todoItem.id);
@@ -176,8 +152,6 @@ class TodoListComponent extends Component{
                     this.element.prepend(item.element);
                 }
             })
-        }else{
-            console.log('just a call');
         }
     }
 }
@@ -188,32 +162,26 @@ class TodoItemComponent extends Component{
         this.pubsub = pubsub;
         this.id = id;
         this.checkBoxButton = null;
-        this.delButton = null;
+        this.deleteButton = null;
         this.editButton = null;
-        this.todoItemDiv = null;
+        this.controlsContainerDiv = null;
         this.editDiv = null;
         this.saveButton = null;
     }
 
     handleEvent(title) {
-        this.delButton.addEventListener('click', ()=>{
-            // let isBoss = 
+        this.deleteButton.addEventListener('click', ()=>{
             confirm(`Вы действительно хотите удалить задачу "${title}"?`);
-
-            // alert( isBoss );
             this.pubsub.fireEvent('delete', this.id);
         })
 
         this.checkBoxButton.addEventListener('click', ()=>{
-            
             this.pubsub.fireEvent('toggle', this.id);
         })
 
         this.editButton.addEventListener('click', ()=>{
-            console.log('click on edit button');
-            this.todoItemDiv.style.display = 'none';
+            this.controlsContainerDiv.style.display = 'none';
             this.editDiv.style.display = '';
-            // this.editDiv.style.display = '';
         })
 
         this.saveButton.addEventListener('click', ()=>{
@@ -221,27 +189,24 @@ class TodoItemComponent extends Component{
             this.pubsub.fireEvent('edit', data);
         })
     }
-/////////////////////////////////
-    render(title, completed){
-        let arrOfHtmlElements = [];
 
+    render(title, completed){
         let section = document.createElement('section');
         section.className = 'todo-list';
+        
 
-        ////////////////////todoItemDiv////////////
-        let todoItemDiv = document.createElement('div');
-        todoItemDiv.className = 'todo-item';
-        todoItemDiv.className += completed ? ' completed' : '';
-        this.todoItemDiv = todoItemDiv;
+        let arrOfHtmlElements = [];
+        this.controlsContainerDiv = document.createElement('div');
+        this.controlsContainerDiv.className = 'todo-item';
+        this.controlsContainerDiv.className += completed ? ' completed' : '';
 
-        let checkboxButton = document.createElement('button');
-        checkboxButton.classList.add('checkbox', 'icon' );
+        this.checkBoxButton = document.createElement('button');
+        this.checkBoxButton.classList.add('checkbox', 'icon' );
 
         let i = document.createElement('i');
         i.className = 'material-icons';
         i.innerText = completed ? 'check_box' : 'check_box_outline_blank';
-        checkboxButton.prepend(i);
-        this.checkBoxButton = checkboxButton;
+        this.checkBoxButton.prepend(i);
     
         let span = document.createElement('span');
         span.className = 'title';
@@ -255,76 +220,65 @@ class TodoItemComponent extends Component{
 
         let edit = document.createElement('i');
         edit.className = 'material-icons';
-        edit.id = this.id;
         edit.innerText = 'create';
         editButton.append(edit);
 
         actionsDiv.append(editButton);
         this.editButton = editButton;
 
-
-        let deleteButton = document.createElement('button');
-        deleteButton.classList.add('delete', 'icon');
+        this.deleteButton = document.createElement('button');
+        this.deleteButton.classList.add('delete', 'icon');
 
         let iDel = document.createElement('i');
         iDel.className = 'material-icons';
-        iDel.id = this.id;
         iDel.innerText = 'delete';
-        deleteButton.append(iDel);
+        this.deleteButton.append(iDel);
 
-        actionsDiv.append(deleteButton);
-        this.delButton = deleteButton;
+        actionsDiv.append(this.deleteButton);
 
-        
-        arrOfHtmlElements.push(checkboxButton);
+        arrOfHtmlElements.push(this.checkBoxButton);
         arrOfHtmlElements.push(span);
         arrOfHtmlElements.push(actionsDiv);
 
         for(let n = 0; n < arrOfHtmlElements.length; n++){
-            todoItemDiv.append(arrOfHtmlElements[n]);
+            this.controlsContainerDiv.append(arrOfHtmlElements[n]);
         }
         ////////////////////////////editDiv
-        let arrOfEditElements = [];
+        let arrOfEditElements = [];//arrOf
 
-        let todoEditDiv = document.createElement('div');
+        let todoEditDiv = document.createElement('div');//editDivContiner
         todoEditDiv.className = 'todo-item';
         todoEditDiv.style.display = 'none';
-        // todoEditDiv.className += completed ? ' completed' : '';
         this.editDiv = todoEditDiv;
-
     
         let textField = document.createElement('input');
         textField.type = 'text';
-        // input.className = 'title';
         textField.value = title;
         this.textField = textField;
 
         let actionsEditDiv = document.createElement('div');
         actionsEditDiv.className = 'actions';
 
-        let saveButton = document.createElement('button');
-        saveButton.classList.add('save', 'icon');
+        this.saveButton = document.createElement('button');
+        this.saveButton.classList.add('save', 'icon');
 
         let save = document.createElement('i');
         save.className = 'material-icons';
-        save.id = this.id;
         save.innerText = 'save';
-        saveButton.append(save);
+        this.saveButton.append(save);
 
-        actionsEditDiv.append(saveButton);
-        this.saveButton = saveButton;
+        actionsEditDiv.append(this.saveButton);
 
-
-        
         arrOfEditElements.push(textField);
         arrOfEditElements.push(actionsEditDiv);
 
         for(let n = 0; n < arrOfEditElements.length; n++){
             todoEditDiv.append(arrOfEditElements[n]);
         }
-//////////////////////////////////////
+
+
         section.append(todoEditDiv);
-        section.append(todoItemDiv);
+        section.append(this.controlsContainerDiv);
 
 
         this.element = section; 
@@ -337,11 +291,9 @@ class TodoItem{
         this.id = uuid();
         this.title = title;
         this.completed = false;
-        console.log(`hello, MY task is "${title}"`);
     }
 }
 
-//-------------------------------------------------------------------------------------------
 class Subscription {
     constructor(event, obj, method) {
         this.event = event;
@@ -371,4 +323,4 @@ class PubSub {
 }
 
 let todo = new TodoAppComponent();
-// document.body.append(todo.element);
+document.body.append(todo.element);
