@@ -127,7 +127,7 @@ class TodoFormComponent extends Component {
     }
 }
 
-class TodoListComponent extends Component{
+class TodoListComponent extends Component {
     constructor(pubsub) {
         super();
         this.element = document.createElement('div');
@@ -156,7 +156,7 @@ class TodoListComponent extends Component{
     }
 }
 
-class TodoItemComponent extends Component{
+class TodoItemComponent extends Component {
     constructor(pubsub, id) {
         super();
         this.pubsub = pubsub;
@@ -286,7 +286,7 @@ class TodoItemComponent extends Component{
     }
 }
 
-class TodoItem{
+class TodoItem {
     constructor(title) {
         this.id = uuid();
         this.title = title;
