@@ -21,6 +21,9 @@ class TodoAppComponent extends Component{
         this.todoService = new TodoService(this.pubsub);
         this.form = new TodoFormComponent(this.pubsub);
         this.todoList = new TodoListComponent(this.pubsub);
+        this.confirmModal = new ConfirmModal(this.pubsub);
+
+        this.idTodo_ToDelete = null;
 
         this.title = 'My 2Do';
         document.getElementsByTagName('header')[0].innerHTML = this.title;
@@ -28,11 +31,16 @@ class TodoAppComponent extends Component{
         this.render();
 
         this.pubsub.subscribe('onCreate', this, this.createTodo); //from form
-        this.pubsub.subscribe('delete', this, this.deleteTodo); //from todoItem
+        this.pubsub.subscribe('handleDelete', this, this.handleDelete); //from todoItem
+        this.pubsub.subscribe('delete', this, this.deleteTodo); //from confirmModal
+        this.pubsub.subscribe('cancelDelete', this, this.cancelDelete);//from confirmModal
         this.pubsub.subscribe('toggle', this, this.toggleTodo); //from todoItem
         this.pubsub.subscribe('edit', this, this.editTodo); //from todoItem
     }
+
     render(){
+        this.element.innerHTML = '';
+        this.element.append(this.confirmModal.render());
         this.element.append(this.form.element);
         this.element.append(this.todoList.element);
     }
@@ -42,16 +50,32 @@ class TodoAppComponent extends Component{
             this.todoService.createTodo(title);
         }
     }
-    deleteTodo(id) {
-        if(id){
-            this.todoService.deleteTodo(id);
-        }
+
+    handleDelete(id) {
+        this.idTodo_ToDelete = id;
+        this.confirmModal.confirmModalVisible = true;
+        this.render();
     }
+    
+    cancelDelete(){
+        this.idTodo_ToDelete = null;
+        this.confirmModal.confirmModalVisible = false;
+        this.render();
+    }
+
+    deleteTodo() {
+        this.todoService.deleteTodo(this.idTodo_ToDelete);
+        this.idTodo_ToDelete = null;
+        this.confirmModal.confirmModalVisible = false;
+        this.render();
+    }
+
     toggleTodo(id) {
         if(id){
             this.todoService.toggleTodo(id);
         }
     }
+
     editTodo(data){
         if(data){
             this.todoService.editTodo(data.title, data.id);
@@ -165,14 +189,13 @@ class TodoItemComponent extends Component {
         this.deleteButton = null;
         this.editButton = null;
         this.controlsContainerDiv = null;
-        this.editDiv = null;
+        this.editDivContainer = null;
         this.saveButton = null;
     }
 
-    handleEvent(title) {
+    handleEvent() {
         this.deleteButton.addEventListener('click', ()=>{
-            confirm(`Вы действительно хотите удалить задачу "${title}"?`);
-            this.pubsub.fireEvent('delete', this.id);
+            this.pubsub.fireEvent('handleDelete', this.id);
         })
 
         this.checkBoxButton.addEventListener('click', ()=>{
@@ -181,7 +204,7 @@ class TodoItemComponent extends Component {
 
         this.editButton.addEventListener('click', ()=>{
             this.controlsContainerDiv.style.display = 'none';
-            this.editDiv.style.display = '';
+            this.editDivContainer.style.display = '';
         })
 
         this.saveButton.addEventListener('click', ()=>{
@@ -246,10 +269,10 @@ class TodoItemComponent extends Component {
         ////////////////////////////editDiv
         let arrOfEditElements = [];//arrOf
 
-        let todoEditDiv = document.createElement('div');//editDivContiner
-        todoEditDiv.className = 'todo-item';
-        todoEditDiv.style.display = 'none';
-        this.editDiv = todoEditDiv;
+        let editDivContainer = document.createElement('div');//editDivContainer
+        editDivContainer.className = 'todo-item';
+        editDivContainer.style.display = 'none';
+        this.editDivContainer = editDivContainer;
     
         let textField = document.createElement('input');
         textField.type = 'text';
@@ -273,16 +296,64 @@ class TodoItemComponent extends Component {
         arrOfEditElements.push(actionsEditDiv);
 
         for(let n = 0; n < arrOfEditElements.length; n++){
-            todoEditDiv.append(arrOfEditElements[n]);
+            editDivContainer.append(arrOfEditElements[n]);
         }
 
 
-        section.append(todoEditDiv);
+        section.append(editDivContainer);
         section.append(this.controlsContainerDiv);
 
 
         this.element = section; 
-        this.handleEvent(title);
+        this.handleEvent();
+    }
+}
+
+class ConfirmModal extends Component{
+    constructor(pubsub){
+        super();
+        this.pubsub = pubsub;
+        this.confirmButton = null;
+        this.cancelButton = null;
+        this.confirmModalVisible = false;
+    }
+
+    handleEvent(){
+        this.cancelButton.addEventListener('click', ()=>{
+            this.pubsub.fireEvent('cancelDelete');
+        });
+
+        this.confirmButton.addEventListener('click', ()=>{
+            this.pubsub.fireEvent('delete');
+        });
+    }
+
+    render() {
+        this.modal = document.createElement('div');
+        this.modal.className = 'popup';
+        this.modal.style.display =  this.confirmModalVisible ? '' : 'none';
+
+        let span = document.createElement('span');
+        span.className = 'title';
+        span.innerText = 'Are you sure?';
+        this.modal.append(span);
+
+        let buttonsContainer = document.createElement('div');
+
+        this.confirmButton = document.createElement('button');
+        this.confirmButton.innerText = 'OK';
+        buttonsContainer.append(this.confirmButton);
+
+        this.cancelButton = document.createElement('button');
+        this.cancelButton.innerText = 'Cancel';
+        buttonsContainer.append(this.cancelButton);
+        
+        this.modal.append(buttonsContainer);
+
+        this.element = this.modal;
+        
+        this.handleEvent();
+        return this.element
     }
 }
 
